@@ -32,7 +32,19 @@ export function LoginCard({ account, returnTo }: { account: DemoAccount; returnT
       </CardHeader>
       <CardContent>
         <form action={formAction}>
-          <Button type="submit" variant="outline" className="w-full" disabled={pending}>
+          {/* buttonVariants bakes in whitespace-nowrap + a fixed h-8 (see
+              components/ui/button.tsx) — fine for a short static label, but
+              this one embeds an org name of unpredictable length ("Malta
+              Gaming & Fintech Holdings"), which pokes text out past the
+              pill's rounded border instead of wrapping. Override both so a
+              long name wraps onto a second line and the button grows to
+              fit it, instead of overflowing. */}
+          <Button
+            type="submit"
+            variant="outline"
+            className="h-auto w-full min-h-8 whitespace-normal py-1.5 text-center"
+            disabled={pending}
+          >
             {pending ? "Signing in…" : `Log in as ${account.name}`}
           </Button>
         </form>

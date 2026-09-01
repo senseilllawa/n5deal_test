@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { after } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { Badge } from "@/components/ui/badge";
@@ -43,11 +44,12 @@ export default async function BuyerAssetDetailPage({ params }: { params: Promise
     notFound();
   }
 
-  // A plain awaited mutation during a Server Component's render is fine —
-  // unlike cookies(), Next doesn't restrict writes here. Just a coarse
-  // interest signal for the Seller/Manager (see Asset.viewCount's doc
-  // comment in schema.prisma), not a per-viewer "seen" receipt.
-  await prisma.asset.update({ where: { id: asset.id }, data: { viewCount: { increment: 1 } } });
+  // Just a coarse interest signal for the Seller/Manager (see
+  // Asset.viewCount's doc comment in schema.prisma), not a per-viewer
+  // "seen" receipt — nothing on this page depends on it, so it shouldn't
+  // block the response behind an extra DB round trip. `after()` runs it
+  // once the response has been sent instead of awaiting it inline.
+  after(() => prisma.asset.update({ where: { id: asset.id }, data: { viewCount: { increment: 1 } } }));
 
   const matchScore = scoreMatch(asset, profile ?? EMPTY_BUYER_PROFILE);
 
