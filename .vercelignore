@@ -1,0 +1,10 @@
+# `vercel --prod` (CLI-based deploy, not a Git-connected one) does not
+# reliably mirror .gitignore for dotfiles — the first deploy bundled .env
+# despite it being gitignored (harmless that time, since Vercel's own
+# `vercel env add` values take precedence over anything in an uploaded
+# .env at runtime — dotenv-style loading never overwrites an already-set
+# process.env var — but shipping real values in build output at all is
+# worth closing regardless of that safety net).
+.env
+.env.*
+!.env.example
