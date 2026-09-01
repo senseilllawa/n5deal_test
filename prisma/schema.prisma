@@ -1,0 +1,206 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+//
+// Naming convention: PascalCase models / camelCase fields (Prisma default,
+// used in app code); snake_case tables / enum types in Postgres itself via
+// @@map, so raw SQL and the Neon console stay readable. See ARCHITECTURE.md
+// "Data model" for the reasoning behind each relation.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  // url / directUrl are NOT set here in Prisma 7 — see prisma7.config.ts.
+}
+
+// --- Enums ---
+
+enum Role {
+  BUYER
+  SELLER
+  MANAGER
+
+  @@map("role")
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  REMOVED
+
+  @@map("user_status")
+}
+
+enum AssetStatus {
+  ACTIVE
+  PENDING
+  SOLD
+  SUSPENDED
+
+  @@map("asset_status")
+}
+
+enum AuditAction {
+  SUSPEND_USER
+  REMOVE_USER
+  REACTIVATE_USER
+  SUSPEND_ASSET
+  RESTORE_ASSET
+
+  @@map("audit_action")
+}
+
+// --- Models ---
+
+/// A marketplace participant. Role is fixed at creation — demo accounts are
+/// seeded per role, there is no self-serve role switch. `status` is the only
+/// thing a Manager can change about a user (moderation), never role or email.
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  name         String
+  role         Role
+  status       UserStatus @default(ACTIVE)
+  /// Manager-facing note explaining a SUSPENDED/REMOVED status. Null while ACTIVE.
+  statusReason String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  /// Present only when role = BUYER. Not split into a separate `Buyer` model
+  /// because Seller has no analogous extra fields — the User row itself is
+  /// enough to act as a Seller (see Asset.seller below).
+  buyerProfile BuyerProfile?
+
+  /// Assets this user has published. Only populated when role = SELLER;
+  /// left as a plain relation (not further constrained by the schema) since
+  /// Postgres has no clean way to express "FK valid only if role = X" and a
+  /// DB-level check isn't worth it for a prototype — enforced in Server Actions.
+  assets Asset[]
+
+  sentContacts     ContactRequest[] @relation("ContactSender")
+  receivedContacts ContactRequest[] @relation("ContactRecipient")
+
+  /// Moderation actions this user performed as a Manager. Named distinctly
+  /// from the relations above since those are about *being* a marketplace
+  /// participant; this is about acting as platform staff.
+  auditLogs AuditLog[] @relation("AuditActor")
+
+  @@index([role])
+  @@index([status])
+  @@map("users")
+}
+
+/// Extended profile for BUYER users: their investment thesis, used on the
+/// Seller-facing "browse buyers" screen for search/filter.
+model BuyerProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  headline      String?
+  bio           String?
+  sectors       String[] // e.g. Payments, Fintech, Crypto
+  jurisdictions String[] // ISO 3166-1 alpha-2, e.g. EE, LT, PL
+  budgetMin     Int?
+  budgetMax     Int?
+  dealTypes     String[] // e.g. asset purchase, share deal
+  updatedAt     DateTime @updatedAt
+
+  // GIN indexes so `hasSome`/`hasEvery` array-containment filters (sector,
+  // jurisdiction) on the buyer directory hit an index instead of a seq scan.
+  @@index([sectors], type: Gin)
+  @@index([jurisdictions], type: Gin)
+  @@map("buyer_profiles")
+}
+
+/// A financial/M&A asset listed by a Seller.
+model Asset {
+  id       String @id @default(cuid())
+  sellerId String
+  seller   User   @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+
+  title         String
+  description   String
+  sector        String
+  jurisdiction  String
+  licenseType   String
+  /// Whole currency units (not cents) — matches how deal sizes are quoted
+  /// in this market; precision beyond whole EUR isn't needed for a prototype.
+  price         Int
+  currency      String      @default("EUR")
+  status        AssetStatus @default(ACTIVE)
+  employeeCount Int?
+  yearIssued    Int?
+  includedItems String[]
+  /// Incremented on each asset-detail view; cheap "interest" signal for
+  /// Sellers and Manager, no separate analytics table needed for a prototype.
+  viewCount     Int         @default(0)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  contactRequests ContactRequest[]
+
+  @@index([sellerId])
+  @@index([status])
+  @@index([sector])
+  @@index([jurisdiction])
+  @@index([createdAt])
+  @@map("assets")
+}
+
+/// A message from one user to another, optionally about a specific Asset.
+/// Deliberately one generic model for both directions of outreach — Buyer to
+/// Seller ("interested in this asset") and Seller to Buyer ("thought this
+/// might fit your thesis") — rather than two separate models, since the
+/// shape (from, to, optional asset, message) is identical either way.
+model ContactRequest {
+  id         String @id @default(cuid())
+  fromUserId String
+  from       User   @relation("ContactSender", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUserId   String
+  to         User   @relation("ContactRecipient", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  /// Optional: set when the contact is about a specific listing. SetNull
+  /// (not Cascade) so a request's message history survives even in the
+  /// hypothetical case an asset row is ever hard-deleted, since Manager
+  /// moderation only ever sets AssetStatus.SUSPENDED, never deletes rows.
+  assetId String?
+  asset   Asset?  @relation(fields: [assetId], references: [id], onDelete: SetNull)
+
+  message   String
+  /// Read state for the recipient's inbox badge. Sender-side "seen" tracking
+  /// isn't modeled — out of scope for a prototype.
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([fromUserId])
+  @@index([toUserId, isRead])
+  @@index([assetId])
+  @@map("contact_requests")
+}
+
+/// A record of a Manager's moderation action. `targetType`/`targetId` is a
+/// deliberately un-typed (no FK) polymorphic reference — a real foreign key
+/// can't point at "User or Asset depending on a discriminator column"
+/// without either two nullable FK columns or a check-constraint Prisma
+/// doesn't model, and the target row is never actually gone anyway (this
+/// system only soft-deletes) but *could* be in a future hard-delete admin
+/// tool, which a plain string tolerates and a FK wouldn't.
+model AuditLog {
+  id         String      @id @default(cuid())
+  actorId    String
+  actor      User        @relation("AuditActor", fields: [actorId], references: [id])
+  action     AuditAction
+  targetType String // "USER" | "ASSET"
+  targetId   String
+  reason     String?
+  createdAt  DateTime    @default(now())
+
+  @@index([actorId])
+  @@index([targetType, targetId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
