@@ -40,7 +40,15 @@ export function AssetCard({
   matchScore?: number;
 }) {
   return (
-    <Card>
+    // h-full + the CardContent's flex-1 below are what keep price/action
+    // pinned to the same bottom edge across a row of cards with
+    // different-length titles/badge counts — see BuyerCard's identical
+    // comment (app/(portal)/seller/buyers/buyer-card.tsx) for the full
+    // explanation; without it, a grid row's cards end up the same *outer*
+    // height (CSS Grid's default row stretch already guarantees that much)
+    // but the footer sits wherever the header+content happen to end, which
+    // is a different point in every card.
+    <Card className="h-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-1.5 text-base font-semibold">
           <span aria-hidden="true">{flagEmoji(asset.jurisdiction)}</span>
@@ -55,7 +63,7 @@ export function AssetCard({
           </CardAction>
         )}
       </CardHeader>
-      <CardContent className="flex flex-wrap items-center gap-1.5">
+      <CardContent className="flex flex-1 flex-wrap content-start items-center gap-1.5">
         <StatusBadge status={asset.status} />
         <Badge variant="outline">{asset.licenseType}</Badge>
         {asset.employeeCount !== null && <Badge variant="secondary">{asset.employeeCount} employees</Badge>}

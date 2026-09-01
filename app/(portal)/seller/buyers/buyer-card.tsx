@@ -22,8 +22,18 @@ export interface BuyerCardData {
 }
 
 export function BuyerCard({ buyer, myAssets }: { buyer: BuyerCardData; myAssets: { id: string; title: string }[] }) {
+  const hasBudget = buyer.budgetMin !== null || buyer.budgetMax !== null;
+
   return (
-    <Card>
+    // h-full + CardContent's flex-1 below keep every card in a row the same
+    // outer height (CSS Grid's row-stretch already gives that) *and* keep
+    // the Budget/Contact footer pinned to the same bottom edge regardless
+    // of how long a given buyer's bio or badge list runs — see AssetCard's
+    // identical comment (components/marketplace/asset-card.tsx). Budget
+    // moved into the footer alongside Contact for the same reason it lives
+    // in AssetCard's footer next to price: it's this card's "price row,"
+    // so it gets the one guaranteed-consistent position on the card.
+    <Card className="h-full">
       <CardHeader>
         <CardTitle>{buyer.name}</CardTitle>
         <CardDescription>{buyer.headline ?? buyer.email}</CardDescription>
@@ -31,7 +41,7 @@ export function BuyerCard({ buyer, myAssets }: { buyer: BuyerCardData; myAssets:
           <MatchBadge score={buyer.matchScore} />
         </CardAction>
       </CardHeader>
-      <CardContent className="flex flex-col gap-2">
+      <CardContent className="flex flex-1 flex-col gap-2">
         {buyer.bio && <p className="text-sm text-muted-foreground">{buyer.bio}</p>}
         <div className="flex flex-wrap gap-1">
           {buyer.sectors.map((s) => (
@@ -45,18 +55,22 @@ export function BuyerCard({ buyer, myAssets }: { buyer: BuyerCardData; myAssets:
             </Badge>
           ))}
         </div>
+      </CardContent>
+      <CardFooter className="items-center justify-between gap-2">
         {/* BuyerProfile has no currency field (unlike Asset) — every seed
-            budget is EUR, so that's hardcoded here rather than guessed. */}
-        {(buyer.budgetMin !== null || buyer.budgetMax !== null) && (
-          <p className="text-sm text-muted-foreground">
-            Budget:{" "}
+            budget is EUR, so that's hardcoded here rather than guessed. An
+            empty span (rather than switching to justify-end) keeps Contact
+            in the exact same spot whether or not a given buyer has a
+            budget set. */}
+        {hasBudget ? (
+          <span className="text-sm text-muted-foreground">
             {buyer.budgetMin !== null ? formatPrice(buyer.budgetMin, "EUR") : "—"}
             {" – "}
             {buyer.budgetMax !== null ? formatPrice(buyer.budgetMax, "EUR") : "—"}
-          </p>
+          </span>
+        ) : (
+          <span />
         )}
-      </CardContent>
-      <CardFooter className="justify-end">
         <ContactBuyerDialog buyerId={buyer.userId} buyerName={buyer.name} myAssets={myAssets} />
       </CardFooter>
     </Card>
