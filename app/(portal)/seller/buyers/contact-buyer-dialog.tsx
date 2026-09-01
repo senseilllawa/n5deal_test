@@ -45,7 +45,10 @@ export function ContactBuyerDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button variant="outline" size="sm" />}>Contact</DialogTrigger>
+      {/* Contact is a primary action (same accent as Publish/Save elsewhere —
+          see globals.css's --primary comment), not a secondary/outline one:
+          it needs to read as clickable against a dark card, not blend into it. */}
+      <DialogTrigger render={<Button size="sm" />}>Contact</DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Contact {buyerName}</DialogTitle>

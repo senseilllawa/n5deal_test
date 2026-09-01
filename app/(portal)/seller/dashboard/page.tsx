@@ -1,7 +1,6 @@
-import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DashboardLinkCard } from "@/components/marketplace/dashboard-link-card";
 
 export default async function SellerDashboardPage() {
   const seller = await requireUser({ role: "SELLER" });
@@ -19,30 +18,15 @@ export default async function SellerDashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Link href="/seller/assets">
-          <Card>
-            <CardHeader>
-              <CardTitle>Your assets</CardTitle>
-            </CardHeader>
-            <CardContent className="text-2xl font-semibold">{assetCount}</CardContent>
-          </Card>
-        </Link>
-        <Link href="/seller/inbox">
-          <Card>
-            <CardHeader>
-              <CardTitle>Unread messages</CardTitle>
-            </CardHeader>
-            <CardContent className="text-2xl font-semibold">{unreadCount}</CardContent>
-          </Card>
-        </Link>
-        <Link href="/seller/buyers">
-          <Card>
-            <CardHeader>
-              <CardTitle>Browse Buyers</CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">Find and contact matching Buyers</CardContent>
-          </Card>
-        </Link>
+        <DashboardLinkCard href="/seller/assets" title="Your assets" contentClassName="text-2xl font-semibold">
+          {assetCount}
+        </DashboardLinkCard>
+        <DashboardLinkCard href="/seller/inbox" title="Unread messages" contentClassName="text-2xl font-semibold">
+          {unreadCount}
+        </DashboardLinkCard>
+        <DashboardLinkCard href="/seller/buyers" title="Browse Buyers" contentClassName="text-sm text-muted-foreground">
+          Find and contact matching Buyers
+        </DashboardLinkCard>
       </div>
     </div>
   );

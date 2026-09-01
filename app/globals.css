@@ -166,4 +166,29 @@
   html {
     @apply font-sans;
   }
+
+  /* Plain <select>/<option> (the filter-sort dropdowns — see
+     app/(portal)/seller/buyers, manager/{users,assets}) are native OS
+     widgets: `color-scheme: dark` on <html class="dark"> (above) is
+     supposed to make their popup list dark automatically, but Chromium on
+     Windows is inconsistent about honoring that for the *popup*
+     specifically (the closed control follows it fine) and falls back to a
+     stark white list. Explicit background/color on the option itself is
+     the one styling Chromium reliably respects there. */
+  select {
+    color-scheme: dark;
+  }
+  select option {
+    background-color: var(--popover);
+    color: var(--popover-foreground);
+  }
+
+  /* Native checkboxes/radios (sector & jurisdiction filter lists) otherwise
+     render with the browser's default accent (blue-ish, ignores the theme
+     entirely) — one line to make them pick up the same brand accent as
+     every button. */
+  input[type="checkbox"],
+  input[type="radio"] {
+    accent-color: var(--primary);
+  }
 }
