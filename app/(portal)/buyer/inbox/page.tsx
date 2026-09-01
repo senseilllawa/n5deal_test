@@ -8,7 +8,7 @@ export default async function BuyerInboxPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-10">
-      <ContactInbox {...inbox} />
+      <ContactInbox {...inbox} emptyIncomingCta={{ href: "/buyer/assets", label: "Browse assets" }} />
     </div>
   );
 }

@@ -42,7 +42,7 @@ export function AssetCard({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-1.5">
+        <CardTitle className="flex items-center gap-1.5 text-base font-semibold">
           <span aria-hidden="true">{flagEmoji(asset.jurisdiction)}</span>
           {asset.title}
         </CardTitle>
@@ -62,7 +62,7 @@ export function AssetCard({
         {asset.yearIssued !== null && <Badge variant="secondary">Est. {asset.yearIssued}</Badge>}
       </CardContent>
       <CardFooter className="items-center justify-between">
-        <span className="text-lg font-semibold">{formatPrice(asset.price, asset.currency)}</span>
+        <span className="text-xl font-semibold tracking-tight">{formatPrice(asset.price, asset.currency)}</span>
         {action}
       </CardFooter>
     </Card>
