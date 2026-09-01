@@ -1,32 +1,34 @@
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { DashboardLinkCard } from "@/components/marketplace/dashboard-link-card";
+import { getUnreadCount } from "@/lib/inbox";
+import { Greeting } from "./greeting";
+import { AssetsStatCard, BrowseBuyersCard, MessagesStatCard } from "./stat-cards";
+import { NextSteps } from "./next-steps";
+import { MarketplacePulse } from "./marketplace-pulse";
 
 export default async function SellerDashboardPage() {
   const seller = await requireUser({ role: "SELLER" });
 
-  const [assetCount, unreadCount] = await Promise.all([
+  const [assetTotal, assetActive, assetPending, unreadCount] = await Promise.all([
     prisma.asset.count({ where: { sellerId: seller.id } }),
-    prisma.contactRequest.count({ where: { toUserId: seller.id, isRead: false } }),
+    prisma.asset.count({ where: { sellerId: seller.id, status: "ACTIVE" } }),
+    prisma.asset.count({ where: { sellerId: seller.id, status: "PENDING" } }),
+    getUnreadCount(seller.id),
   ]);
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-6 px-6 py-10">
-      <div>
-        <h1 className="text-xl font-semibold">Welcome, {seller.name}</h1>
-        <p className="text-sm text-muted-foreground">{seller.email}</p>
-      </div>
+    <div className="mx-auto flex max-w-287.5 flex-col gap-8 px-6 py-10">
+      <Greeting name={seller.name} email={seller.email} />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <DashboardLinkCard href="/seller/assets" title="Your assets" contentClassName="text-2xl font-semibold">
-          {assetCount}
-        </DashboardLinkCard>
-        <DashboardLinkCard href="/seller/inbox" title="Unread messages" contentClassName="text-2xl font-semibold">
-          {unreadCount}
-        </DashboardLinkCard>
-        <DashboardLinkCard href="/seller/buyers" title="Browse Buyers" contentClassName="text-sm text-muted-foreground">
-          Find and contact matching Buyers
-        </DashboardLinkCard>
+        <AssetsStatCard active={assetActive} pending={assetPending} total={assetTotal} />
+        <MessagesStatCard unreadCount={unreadCount} />
+        <BrowseBuyersCard />
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <NextSteps unreadCount={unreadCount} />
+        <MarketplacePulse />
       </div>
     </div>
   );

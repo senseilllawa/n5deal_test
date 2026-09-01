@@ -16,7 +16,7 @@ test("logging in as an active seller reaches the seller dashboard, header shows 
   await page.getByRole("button", { name: "Log in as Nordic Fintech Partners" }).click();
 
   await expect(page).toHaveURL(/\/seller\/dashboard$/);
-  await expect(page.getByRole("heading", { name: "Welcome, Nordic Fintech Partners" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Welcome back, Nordic Fintech Partners" })).toBeVisible();
 
   const header = page.locator("header");
   await expect(header.getByText("Nordic Fintech Partners")).toBeVisible();

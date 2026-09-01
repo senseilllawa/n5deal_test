@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { prisma } from "@/lib/db";
 
 export interface InboxItem {
@@ -13,6 +14,15 @@ export interface InboxData {
   incoming: InboxItem[];
   outgoing: InboxItem[];
 }
+
+/**
+ * Cached per request (see lib/auth.ts's findUserById for the same pattern)
+ * — a section layout showing an unread badge in its nav AND the dashboard
+ * page it wraps both calling this costs one query, not two.
+ */
+export const getUnreadCount = cache((userId: string) =>
+  prisma.contactRequest.count({ where: { toUserId: userId, isRead: false } })
+);
 
 /**
  * Shared by /seller/inbox and /buyer/inbox — a ContactRequest inbox looks

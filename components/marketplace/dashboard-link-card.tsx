@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 /**
  * A dashboard summary tile that's also a link (seller/buyer dashboards).
@@ -28,11 +28,17 @@ export function DashboardLinkCard({
   title,
   children,
   contentClassName,
+  corner,
 }: {
   href: string;
   title: string;
   children: ReactNode;
   contentClassName?: string;
+  /** Optional small mark in the header's top-right corner — a status dot
+   * or an icon (e.g. a `→` hinting the whole card is clickable). Kept as a
+   * free-form slot rather than a fixed prop shape, since the seller
+   * dashboard's three cards each want a different kind of mark. */
+  corner?: ReactNode;
 }) {
   return (
     <Link
@@ -42,6 +48,7 @@ export function DashboardLinkCard({
       <Card className="h-full transition-colors group-hover:bg-accent/50">
         <CardHeader>
           <CardTitle>{title}</CardTitle>
+          {corner && <CardAction>{corner}</CardAction>}
         </CardHeader>
         <CardContent className={contentClassName}>{children}</CardContent>
       </Card>
