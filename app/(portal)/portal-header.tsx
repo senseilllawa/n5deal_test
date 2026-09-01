@@ -13,16 +13,23 @@ const ROLE_LABEL: Record<Role, string> = {
 
 export function PortalHeader({ user }: { user: User }) {
   return (
-    <header className="sticky top-0 z-40 flex items-center justify-between border-b bg-card/95 px-6 py-3 backdrop-blur supports-backdrop-filter:bg-card/75">
-      <Link href={roleHomePath(user.role)} className="flex items-center gap-2.5">
+    <header className="sticky top-0 z-40 flex min-w-0 items-center justify-between gap-3 border-b bg-card/95 px-4 py-2.5 backdrop-blur supports-backdrop-filter:bg-card/75 sm:px-6">
+      <Link href={roleHomePath(user.role)} className="flex min-w-0 items-center gap-2.5 sm:gap-3">
         {/* Logo placeholder — a monogram mark, not an external asset. */}
-        <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-xs font-bold text-primary-foreground sm:size-9 sm:text-sm">
           N5
         </span>
-        <span className="text-sm font-semibold tracking-tight">N5Deal Marketplace</span>
+        <span className="flex min-w-0 flex-col leading-tight">
+          <span className="truncate text-sm font-semibold tracking-tight">N5Deal Marketplace</span>
+          {/* Tagline only where there's room to breathe — on a narrow
+              phone header it's the first thing worth dropping. */}
+          <span className="hidden text-xs text-muted-foreground sm:block">Marketplace operations</span>
+        </span>
       </Link>
-      <div className="flex items-center gap-3">
-        <span className="text-sm text-foreground">{user.name}</span>
+      <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+        {/* Name follows the same rule — the role badge alone is enough
+            identity on a phone-width header. */}
+        <span className="hidden text-sm text-foreground sm:inline">{user.name}</span>
         <Badge variant="secondary">{ROLE_LABEL[user.role]}</Badge>
         <form action={logout}>
           <Button type="submit" variant="ghost" size="sm">
